@@ -274,9 +274,6 @@ def find_non_overlap_matches(
 
         ms = sorted(ms, key=lambda m: ori_text.find(m.group()))  # sort matches by occurrence order
 
-        print(check_return(ms))
-        print(text)
-        print("##########################################################################")
         assert check_return(ms)
         if return_match_map:
             return FindNOverlapMatchesOutput(groups=[m.group() for m in ms], matches=ms, pattern_map=p_map)

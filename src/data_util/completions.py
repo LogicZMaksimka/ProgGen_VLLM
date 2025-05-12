@@ -433,10 +433,6 @@ def completion_file2index(fnm: str = None) -> int:
 
 
 def completion_dir_name2file_paths(path: str = None) -> List[str]:
-    print("##########################")
-    print(path)
-    print("##########################")
-
     if not os.path.isdir(path):
         raise ValueError(f'Directory {pl.i(path)} not found, make sure you are in the correct working directory.')
     return sorted(glob.iglob(os_join(glob.escape(path), '*.txt')), key=completion_file2index)
