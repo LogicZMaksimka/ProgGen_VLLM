@@ -18,7 +18,7 @@ from src.util import sconfig
 from src.util.ner_example import NerReadableExample, DatasetLoader
 from src.generate.diversify.util import OptionGenerator, N_List, DIVERSE_ENTITY_DNM, GenSetup
 from src.generate.diversify import Attribute2Categories
-
+from src.data_util.sample_edit import drop_enclosing_quotes
 
 __all__ = ['EntityGenerator']
 
@@ -517,7 +517,9 @@ class EntityGenerator(OptionGenerator):
     def extract_values(self, text: str = None, n_expect: int = None) -> List[str]:
         ms = self._match_values(text=text, pattern=self.pattern_entity, n_expect=n_expect, union_patterns=True)
         ret: List[str] = [m.group('entity').strip() for m in ms]
-        ret = [edit.drop_enclosing_quotes(e) for e in ret]
+
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ret = [drop_enclosing_quotes(e) for e in ret]
 
         if self.drop_after_comma:
             ms = [re.match(pattern_comma, e) for e in ret]

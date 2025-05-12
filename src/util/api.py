@@ -45,27 +45,50 @@ def set_openai_api_key():
     import openai  # lazy import to save time
     openai.api_key = get_openai_api_key()
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# class TokenCounter:
+#     """
+#     Count the number of tokens for OpenAI API call
+
+#     Intended for estimating API call cost
+#     """
+
+#     def __init__(self, gpt_model: str = 'gpt-3.5-turbo'):
+#         self.gpt_model = gpt_model
+#         self._enc = None
+
+#     @property
+#     def enc(self):
+#         if self._enc is None:
+#             import tiktoken  # lazy import to save time
+#             self._enc = tiktoken.encoding_for_model(self.gpt_model)
+#         return self._enc
+
+#     def __call__(self, text: str) -> int:
+#         return len(self.enc.encode(text))
+
+from transformers import AutoTokenizer
 
 class TokenCounter:
     """
-    Count the number of tokens for OpenAI API call
+    Count the number of tokens for vLLM/HuggingFace models.
 
-    Intended for estimating API call cost
+    Intended for estimating API call cost.
     """
 
-    def __init__(self, gpt_model: str = 'gpt-3.5-turbo'):
+    def __init__(self, gpt_model: str = 'Qwen/Qwen2.5-32B-Instruct'):
         self.gpt_model = gpt_model
-        self._enc = None
+        self._tokenizer = None
 
     @property
     def enc(self):
-        if self._enc is None:
-            import tiktoken  # lazy import to save time
-            self._enc = tiktoken.encoding_for_model(self.gpt_model)
-        return self._enc
+        if self._tokenizer is None:
+            self._tokenizer = AutoTokenizer.from_pretrained(self.gpt_model)
+        return self._tokenizer
 
     def __call__(self, text: str) -> int:
-        return len(self.enc.encode(text))
+        return len(self.enc.encode(text, add_special_tokens=False))
+
 
 
 # token count for gpt-3.5-turbo
@@ -247,8 +270,9 @@ def get_api_query_token_cost(
         'gpt4': {'prompt': 0.03, 'completion': 0.06},
         'gpt-4-0125-preview': {'prompt': 0.01, 'completion': 0.03},
     }
-    if model_name not in type2price:
-        raise NotImplementedError
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # if model_name not in type2price:
+    #     raise NotImplementedError
 
     if not isinstance(completion_dir_name, list):
         completion_dir_name = [completion_dir_name]
@@ -260,26 +284,28 @@ def get_api_query_token_cost(
         toks_ppt += out.n_prompt_tokens
         toks_cpl += out.n_completion_tokens
 
-    def n_token2price(n_tok: int, kind: str = 'prompt') -> float:
-        return n_tok * type2price[model_name][kind] / 1000
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # def n_token2price(n_tok: int, kind: str = 'prompt') -> float:
+    #     return n_tok * type2price[model_name][kind] / 1000
 
-    def pretty_price(price: float) -> str:
-        d = 4 if price < 0.01 else 2
-        return f'${round(price, d)}'
+    # def pretty_price(price: float) -> str:
+    #     d = 4 if price < 0.01 else 2
+    #     return f'${round(price, d)}'
 
     def kind2d(toks: List[int], kind: str = 'prompt') -> Tuple[float, Dict[str, Any]]:
         # get total #token & average #token per chat, also the price
         avg, n_tok = np.mean(toks), sum(toks)
-        price = n_token2price(n_tok=n_tok, kind=kind)
-        return price, {'average-#token': round(avg, 2), 'total-#token': fmt_num(n_tok), 'token-query-cost': pretty_price(price)}
+        return 0, {'average-#token': round(avg, 2), 'total-#token': fmt_num(n_tok), 'token-query-cost': 0}
 
     prc_ppt, d_tok_ppt = kind2d(toks_ppt, kind='prompt')
     prc_cpl, d_tok_cpl = kind2d(toks_cpl, kind='completion')
+
     total_price = prc_ppt + prc_cpl
+
     ret = dict(prompt=d_tok_ppt, completion=d_tok_cpl)
     ret = {k2: {k1: v1 for k1, v1 in v2.items()} for k2, v2 in ret.items()}  # reverse the ordering of 1st and 2nd level keys
     dir_nms_log = [stem(d, top_n=2) for d in completion_dir_name]
     if len(dir_nms_log) == 1:
         dir_nms_log = dir_nms_log[0]
-    ret = {'completion-dir-name': dir_nms_log, '#chat': n_chat, **ret, 'total-token-query-cost': pretty_price(total_price)}
+    ret = {'completion-dir-name': dir_nms_log, '#chat': n_chat, **ret, 'total-token-query-cost': 0}
     return ret

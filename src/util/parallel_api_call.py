@@ -131,8 +131,8 @@ _logger = get_logger('OpenAI Parallel Req')
 # I will modify using the most recent `openai` v1 package,
 #   which from standalone usage is consistent with OpenAI playground.
 
-# USE_OPENAI = False
-USE_OPENAI = True
+USE_OPENAI = False
+# USE_OPENAI = True
 # ========================== End of added ==========================
 
 
@@ -207,11 +207,13 @@ async def parallel_api_call(
     logger.debug(f"Logging initialized at level {logging_level}")
 
     # infer API endpoint and construct request header
-    api_endpoint = api_endpoint_from_url(request_url)
-    request_header = {"Authorization": f"Bearer {api_key}"}
-    # use api-key header for Azure deployments
-    if '/deployments' in request_url:
-        request_header = {"api-key": f"{api_key}"}
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # api_endpoint = api_endpoint_from_url(request_url)
+    # request_header = {"Authorization": f"Bearer {api_key}"}
+    # # use api-key header for Azure deployments
+    # if '/deployments' in request_url:
+    #     request_header = {"api-key": f"{api_key}"}
+    request_header = {"Content-Type": "application/json"}
 
     # initialize trackers
     queue_of_requests_to_retry = asyncio.Queue()
@@ -254,9 +256,7 @@ async def parallel_api_call(
                             next_request = APIRequest(
                                 task_id=next(task_id_generator),
                                 request_json=request_json,
-                                token_consumption=num_tokens_consumed_from_request(
-                                    request_json, api_endpoint, token_encoding_name
-                                ),
+                                token_consumption=42, #num_tokens_consumed_from_request(request_json, api_endpoint, token_encoding_name),
                                 attempts_left=max_attempts,
                                 metadata=request_json.pop("metadata", None),
                                 client=client,
@@ -454,16 +454,39 @@ class APIRequest:
         try:
             # ========================== Begin of modified ==========================
             if not USE_OPENAI:
+            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            #     assert self.client is None  # sanity check
+            #     async with session.post(
+            #         url=request_url, headers=request_header, json=self.request_json, timeout=timeout
+            #     ) as response:
+            #         response = await response.json()
+            # else:
+            #     assert self.client is not None  # sanity check
+            #     cln = self.client.with_options(timeout=timeout)
+            #     response = await cln.chat.completions.create(**self.request_json)
+            #     response = response.model_dump()  # `ChatCompletion` => `dict`
+
+            
                 assert self.client is None  # sanity check
-                async with session.post(
-                    url=request_url, headers=request_header, json=self.request_json, timeout=timeout
-                ) as response:
-                    response = await response.json()
-            else:
-                assert self.client is not None  # sanity check
-                cln = self.client.with_options(timeout=timeout)
-                response = await cln.chat.completions.create(**self.request_json)
-                response = response.model_dump()  # `ChatCompletion` => `dict`
+                vllm_url = request_url  # e.g., "http://localhost:8000/v1/chat/completions"
+                # print("header: ", request_header)
+                # print("json: ", self.request_json)
+                # print("############################")
+                try:
+                    async with session.post(
+                        url=vllm_url,
+                        headers=request_header,
+                        json=self.request_json,
+                        timeout=timeout
+                    ) as resp:
+                        if resp.status != 200:
+                            response_text = await resp.text()
+                            response = {"error": {"message": f"HTTP {resp.status}: {response_text}"}}
+                        else:
+                            response = await resp.json()
+                except aiohttp.ClientError as e:
+                    response = {"error": {"message": str(e)}}
+
             # ========================== End of modified ==========================
 
             if "error" in response:

@@ -273,6 +273,10 @@ def find_non_overlap_matches(
         assert all(not span_pair_overlap(s1, s2) for s1, s2 in zip(spans[:-1], spans[1:]))
 
         ms = sorted(ms, key=lambda m: ori_text.find(m.group()))  # sort matches by occurrence order
+
+        print(check_return(ms))
+        print(text)
+        print("##########################################################################")
         assert check_return(ms)
         if return_match_map:
             return FindNOverlapMatchesOutput(groups=[m.group() for m in ms], matches=ms, pattern_map=p_map)

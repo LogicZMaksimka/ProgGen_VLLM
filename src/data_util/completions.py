@@ -233,25 +233,29 @@ def _write_completions(
         with open(os_join(output_dir, requests_fnm), 'w') as fl:
             for args in lst_args:
                 fl.write(json.dumps(args) + '\n')
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # use_chat = api.openai_model_use_chat(model_name)
+        # if use_chat:
+        #     request_url = 'https://api.openai.com/v1/chat/completions'
+        # else:
+        #     raise NotImplementedError
 
-        use_chat = api.openai_model_use_chat(model_name)
-        if use_chat:
-            request_url = 'https://api.openai.com/v1/chat/completions'
-        else:
-            raise NotImplementedError
-
-        if model_name in ['gpt-4', 'gpt-4-0125-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-1106', 'text-embedding-ada-002']:
-            tok_enc_name = 'cl100k_base'
-        else:
-            raise NotImplementedError(model_name)
+        # if model_name in ['gpt-4', 'gpt-4-0125-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-1106', 'text-embedding-ada-002']:
+        #     tok_enc_name = 'cl100k_base'
+        # else:
+        #     raise NotImplementedError(model_name)
+    
         # tier = 2
-        tier = 3
-        if tier == 2:
-            max_tok_per_min = {'gpt-3.5-turbo': 90_000, 'gpt-3.5-turbo-1106': 90_000}
-        else:
-            assert tier == 3
-            max_tok_per_min = {'gpt-3.5-turbo': 160_000, 'gpt-3.5-turbo-1106': 160_000, 'gpt-4-0125-preview': 600_000}
-        max_tok_per_min = max_tok_per_min[model_name]
+        # tier = 3
+        # if tier == 2:
+        #     max_tok_per_min = {'gpt-3.5-turbo': 90_000, 'gpt-3.5-turbo-1106': 90_000}
+        # else:
+        #     assert tier == 3
+        #     max_tok_per_min = {'gpt-3.5-turbo': 160_000, 'gpt-3.5-turbo-1106': 160_000, 'gpt-4-0125-preview': 600_000}      
+        # max_tok_per_min = max_tok_per_min[model_name]
+        max_tok_per_min = 600_000
+
         # a rough guide, assuming each request completes ~1 min, trial and error based on API Rate Limit Error
         max_req_per_min = round(max_tok_per_min / exp_total_seq_len_bound)
         if timeout is None:
@@ -260,16 +264,16 @@ def _write_completions(
         asyncio.run(parallel_api_call(
             requests_filepath=requests_fnm,
             output_directory=output_dir,
-            request_url=request_url,
-            api_key=api.get_openai_api_key(),
+            request_url="http://10.11.1.11:5042/v1/chat/completions",
+            api_key=42, #api.get_openai_api_key(),
             max_tokens_per_minute=max_tok_per_min,
             max_requests_per_minute=max_req_per_min,
-            token_encoding_name=tok_enc_name,
+            token_encoding_name='cl100k_base',
             max_attempts=2**31 - 1,  # set tp max int, keep trying until the error is resolved, ensure each prompt is replied to
             logger=logger,
             n_prompt=n_prompt,
             completion_filenames=completion_fnms,
-            is_chat_model=use_chat,
+            is_chat_model=True,
             timeout=timeout,
             logprobs=logprobs
         ))
@@ -308,7 +312,13 @@ def _write_completions(
             pg = prompt_groups[i_g-1]
             call_args = GptGenArgs(model_name=model_name, prompt=pg, max_tokens=max_tok, temperature=temperature, logprobs=logprobs, seed=seed)
             try:
+                
+                
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
                 completions = api.openai_completion_call(args=call_args, verbose=True)
+
+
+
             except openai.error.RateLimitError as e:
                 # print stack trace and continue generation
                 t_sleep = 60
@@ -423,6 +433,10 @@ def completion_file2index(fnm: str = None) -> int:
 
 
 def completion_dir_name2file_paths(path: str = None) -> List[str]:
+    print("##########################")
+    print(path)
+    print("##########################")
+
     if not os.path.isdir(path):
         raise ValueError(f'Directory {pl.i(path)} not found, make sure you are in the correct working directory.')
     return sorted(glob.iglob(os_join(glob.escape(path), '*.txt')), key=completion_file2index)
