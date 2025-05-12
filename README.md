@@ -380,3 +380,62 @@ Potential functionalities to support include
 2.   Customizable templates, including
      -   (1) diversity config generation, (2) data generation instruction and (3) diversity requirement
 
+
+# VLLM Reproduction
+
+0. Install the requirements
+
+```bash
+pip install -r requirements.txt
+```
+
+1. Make sure python sees the `src` package folder:  
+
+```bash
+export PYTHONPATH=$PYTHONPATH:$(pwd) 
+```
+
+2. Set vllm server url `request_url` in `src/data_util/completions.py`
+
+3. Generate domain attributes and entities
+
+```bash
+python scripts/generate_diversity_config.py \
+	--dataset_name 'conll2003-no-misc' \
+	--diversity_variant 'diversify-y-latent' \
+	--diversify_y_latent_attribute 'reproduce/diversify-x/config/conll2003_no_misc.json' \
+	--prompt_seed 42 \
+	--chat_model_name 'Qwen/Qwen2.5-32B-Instruct' \
+	--chat_max_tokens 4096 \
+	--chat_temperature 0.5 \
+	--chat_timeout 1000 \
+	--n_call 5
+```
+4. Set `attribute2categories_dict[ENTITY_KEY_SEEDED]["presets"]["custom"]` to newly generated dir with attributes here `src/generate/diversify/attr2cats_dicts/conll2003.py`
+
+5. Generate NER dataset
+```bash
+python scripts/generate_ner_sample.py \
+	--dataset_name 'conll2003-no-misc' \
+	--diversity_variant 'diversify-y-latent' \
+	--prompt_seed 42 \
+	--n_list 3 \
+	--n_call 600 \
+	--chat_model_name 'Qwen/Qwen2.5-32B-Instruct' \
+	--chat_max_tokens 4096 \
+	--chat_timeout 1000 
+```
+
+6. Train BERT
+```bash
+python scripts/train.py \
+	--dataset_name 'conll2003-no-misc' \
+	--generated_dataset_dir_name 'generated_data/conll2003_no_misc/25-05-12_NER-Dataset_{#l=3,de=s}' \
+	--few_shot_demo_file 'bio-train-1-shot-shuffled+neg.jsonl' \
+	--test_file 'bio-test.jsonl' \
+	--hf_model_name 'microsoft/deberta-v3-base' \
+	--learning_rate 4e-5 \
+	--n_epochs 16.0 \
+	--train_batch_size 24 \
+	--seed 42
+```
