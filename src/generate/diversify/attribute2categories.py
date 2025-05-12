@@ -253,8 +253,7 @@ class Attribute2Categories:
 
     def _dir_name2entity_options(self, dir_name: str = None) -> Dict[str, List[str]]:
         path = dataset_name2data_dir(dataset_name=self.dataset_name, sub_dir=DIVERSE_ENTITY_DNM, input_dir=dir_name).path
-        # with open(os_join(path, 'processed-entities.json'), 'r') as f:
-        with open('/cephfs/home/savkin/2024/ProgGen/generated_data/conll2003_no_misc/diverse-entity/25-05-12_Entity-Dataset_{seed=news}/processed-entities.json', 'r') as f:
+        with open(os_join(path, 'processed-entities.json'), 'r') as f:
             return json.load(f)['entity-type2entity-names']
 
     def get_options(self, attribute_name: str = None) -> CategoryOptions:

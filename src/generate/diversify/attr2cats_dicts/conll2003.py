@@ -12,25 +12,27 @@ attribute2categories_dict = {
         # categories='300-75',
         # categories='150-50',
         presets={  # for ~400 unique named entities for each entity type
-            # '400': '23-11-05_Processed-Entity-Data',
+            '400': '23-11-05_Processed-Entity-Data',
             '100': '23-11-19_Entity-Dataset',
             '150-domain-2': '23-12-28_Entity-Dataset_domain-2',
             '100-domain-2-dedup': '23-12-28_Entity-Dataset_domain-2-dedup',
             '300-75': '24-02-07_Entity-Dataset_75',
-            '150-50': '24-02-07_Entity-Dataset_50'
+            '150-50': '24-02-07_Entity-Dataset_50',
         }
     ),
     ENTITY_KEY_SEEDED: dict(
         short='ent-s',
         seed_category='news-category',
-        categories='new30=>40-domain-2',  # best-performing
+        # categories='new30=>40-domain-2',  # best-performing
+        categories='custom',
         presets_dependency={
             '30=>200': '30',
             '30=>50': '30',
             '30=>50-split': '30',
             '30=>30': '30',
             'new30=>40': 'new30',
-            'new30=>40-domain-2': 'new30'
+            'new30=>40-domain-2': 'new30',
+            'custom': '30'
         },
         presets={
             '30=>200': '23-11-09_Entity-Dataset_seeded',
@@ -38,7 +40,8 @@ attribute2categories_dict = {
             '30=>50-split': '23-11-10_Entity-Dataset_{drop-[,]=T,split-()=T}_seeded_50',
             '30=>30': '23-11-10_Entity-Dataset_seeded_30',
             'new30=>40': '23-11-19_Entity-Dataset_{seed=news}',
-            'new30=>40-domain-2': '23-12-28_Entity-Dataset_{seed=news}_domain-2'
+            'new30=>40-domain-2': '23-12-28_Entity-Dataset_{seed=news}_domain-2',
+            'custom': '25-05-12_Entity-Dataset_{seed=news}',
         }
     ),
     'news-category': dict(
